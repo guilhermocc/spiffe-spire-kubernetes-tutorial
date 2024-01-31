@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greeter-client
+  namespace: default
+  labels:
+    app: greeter-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: greeter-client
+  template:
+    metadata:
+      namespace: default
+      labels:
+        app: greeter-client
+        spire.spiffe.io/spiffeid: greeter-client
+    spec:
+      containers:
+        - name: greeter-client
+          image: greeter-client:demo
+          imagePullPolicy: Never
+          volumeMounts:
+            - name: spiffe-workload-api
+              mountPath: /spiffe-workload-api
+              readOnly: true
+          env:
+            - name: SPIFFE_ENDPOINT_SOCKET
+              value: unix:///spiffe-workload-api/spire-agent.sock
+            - name: GREETER_SERVER_ADDR
+              value: greeter-server.default.svc.cluster.local:8443
+      volumes:
+        - name: spiffe-workload-api
+          csi:
+            driver: "csi.spiffe.io"
+            readOnly: true
+
+---
+
+apiVersion: spire.spiffe.io/v1alpha1
+kind: ClusterSPIFFEID
+metadata:
+  name: greeter-client
+spec:
+  spiffeIDTemplate: spiffe://cluster.demo/greeter-client
+  podSelector:
+    matchLabels:
+      spire.spiffe.io/spiffeid: greeter-client
