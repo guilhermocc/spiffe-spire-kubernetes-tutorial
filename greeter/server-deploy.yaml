@@ -1,8 +1,15 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: greeter-server
+  namespace: workload
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: greeter-server
-  namespace: default
+  namespace: workload
   labels:
     app: greeter-server
 spec:
@@ -12,11 +19,12 @@ spec:
       app: greeter-server
   template:
     metadata:
-      namespace: default
+      namespace: workload
       labels:
         app: greeter-server
         spire.spiffe.io/spiffeid: greeter-server
     spec:
+      serviceAccountName: greeter-server
       containers:
         - name: greeter-server
           image: greeter-server:demo
@@ -41,7 +49,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: greeter-server
-  namespace: default
+  namespace: workload
 spec:
     selector:
         app: greeter-server
@@ -51,12 +59,12 @@ spec:
         protocol: TCP
 
 ---
-apiVersion: spire.spiffe.io/v1alpha1
-kind: ClusterSPIFFEID
-metadata:
-  name: greeter-server
-spec:
-  spiffeIDTemplate: spiffe://cluster.demo/greeter-server
-  podSelector:
-    matchLabels:
-      spire.spiffe.io/spiffeid: greeter-server
+#apiVersion: spire.spiffe.io/v1alpha1
+#kind: ClusterSPIFFEID
+#metadata:
+#  name: greeter-server
+#spec:
+#  spiffeIDTemplate: spiffe://cluster.demo/greeter-server
+#  podSelector:
+#    matchLabels:
+#      spire.spiffe.io/spiffeid: greeter-server

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spiffe/go-spiffe/v2/spiffegrpc/grpccredentials"
@@ -22,6 +23,24 @@ func main() {
 	var addr string
 	flag.StringVar(&addr, "addr", "", "host:port of the server")
 	flag.Parse()
+
+	var authorizedSpiffeIDs string
+	flag.StringVar(&authorizedSpiffeIDs, "authorized-spiffe-ids", "", "authorized spiffe IDs separated by comma")
+	flag.Parse()
+	// spiffe IDs separated by comma
+
+	if authorizedSpiffeIDs == "" {
+		authorizedSpiffeIDs = os.Getenv("AUTHORIZED_SPIFFE_IDS")
+	}
+
+	var authorizedSpiffeIDsSlice []spiffeid.ID
+	for _, sid := range strings.Split(authorizedSpiffeIDs, ",") {
+		authSpiffeID, err := spiffeid.FromString(sid)
+		if err != nil {
+			log.Fatal("Invalid SPIFFE ID %q: %v", sid, err)
+		}
+		authorizedSpiffeIDsSlice = append(authorizedSpiffeIDsSlice, authSpiffeID)
+	}
 
 	if addr == "" {
 		addr = os.Getenv("GREETER_SERVER_ADDR")
@@ -66,9 +85,7 @@ func main() {
 		fmt.Printf("Bundle cert: %s", pemObject)
 	}
 
-	serverID := spiffeid.RequireFromString("spiffe://cluster.demo/greeter-server")
-
-	creds := grpccredentials.MTLSClientCredentials(source, source, tlsconfig.AuthorizeID(serverID))
+	creds := grpccredentials.MTLSClientCredentials(source, source, tlsconfig.AuthorizeOneOf(authorizedSpiffeIDsSlice...))
 
 	client, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(creds))
 	if err != nil {

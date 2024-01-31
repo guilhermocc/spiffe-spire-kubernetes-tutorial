@@ -1,8 +1,27 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: greeter-client
+  namespace: workload
+---
+
+#apiVersion: spire.spiffe.io/v1alpha1
+#kind: ClusterSPIFFEID
+#metadata:
+#  name: greeter-client
+#spec:
+#  spiffeIDTemplate: spiffe://cluster.demo/greeter-client
+#  podSelector:
+#    matchLabels:
+#      spire.spiffe.io/spiffeid: greeter-client
+
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: greeter-client
-  namespace: default
+  namespace: workload
   labels:
     app: greeter-client
 spec:
@@ -12,11 +31,12 @@ spec:
       app: greeter-client
   template:
     metadata:
-      namespace: default
+      namespace: workload
       labels:
         app: greeter-client
         spire.spiffe.io/spiffeid: greeter-client
     spec:
+      serviceAccountName: greeter-client
       containers:
         - name: greeter-client
           image: greeter-client:demo
@@ -29,21 +49,11 @@ spec:
             - name: SPIFFE_ENDPOINT_SOCKET
               value: unix:///spiffe-workload-api/spire-agent.sock
             - name: GREETER_SERVER_ADDR
-              value: greeter-server.default.svc.cluster.local:8443
+              value: greeter-server.workload.svc.cluster.local:8443
+            - name: AUTHORIZED_SPIFFE_IDS
+              value: spiffe://example.org/ns/workload/sa/greeter-server
       volumes:
         - name: spiffe-workload-api
           csi:
             driver: "csi.spiffe.io"
             readOnly: true
-
----
-
-apiVersion: spire.spiffe.io/v1alpha1
-kind: ClusterSPIFFEID
-metadata:
-  name: greeter-client
-spec:
-  spiffeIDTemplate: spiffe://cluster.demo/greeter-client
-  podSelector:
-    matchLabels:
-      spire.spiffe.io/spiffeid: greeter-client
