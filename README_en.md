@@ -1,5 +1,11 @@
 # SPIFFE SPIRE Kubernetes Tutorial
 
+<p align="center">
+  <img src="images/spire.png" alt="drawing" width="120" style="margin-right: 30px;"/>
+  <img src="images/spiffe.png" alt="drawing" width="200" style="margin-right: 0px;"/>
+  <img src="images/k8s.png" alt="drawing" width="200"/>
+</p>
+
 > **Note:** Procurando pela versão em português deste tutorial? [Clique aqui](README.md)
 
 [SPIFFE](https://spiffe.io/) and [SPIRE](https://spiffe.io/) are open-source projects maintained by the [CNCF](https://www.cncf.io/) that offer a secure and standardized
