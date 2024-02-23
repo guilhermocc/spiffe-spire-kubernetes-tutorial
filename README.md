@@ -36,7 +36,7 @@ Eu recomendo fortemente que você leia os scripts e entenda o que cada passo est
 - [kind](https://kind.sigs.k8s.io/docs/user/quick-start/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - [helm](https://helm.sh/docs/intro/install/)
-- [docker] (https://docs.docker.com/get-docker/)
+- [docker](https://docs.docker.com/get-docker/)
 
 ## Arquitetura
 
