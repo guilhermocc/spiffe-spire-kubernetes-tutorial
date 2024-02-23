@@ -59,7 +59,7 @@ Abaixo você pode encontrar um diagrama do que está sendo implantado no cluster
 
 <img src="images/components.png" alt="drawing" width="1000"/>
 
-### Componentes de Carga de Trabalho
+### Componentes de Workloads
 
 Neste tutorial, usamos a aplicação `greeter` que pode ser encontrado no diretório `greeter`.
 A aplicação greeter dispõe de um cliente e servidor que implementam o [exemplo de serviço hello world do gRPC](https://github.com/grpc/grpc-go/tree/master/examples).
