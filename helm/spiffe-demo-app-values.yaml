@@ -1,0 +1,39 @@
+# Default values for spiffe-demo-app.
+
+image:
+  # -- The OCI registry to pull the image from
+  registry: ghcr.io
+  # -- The repository within the registry
+  repository: elinesterov/spiffe-demo-app
+  # -- The image tag to pull
+  tag: v0.2.2
+  # -- The image pull policy
+  pullPolicy: IfNotPresent
+
+# -- Image used for busybox when enabled
+busyboxImage: busybox
+
+# -- The service type to use
+service:
+  type: LoadBalancer
+  port: 80
+
+# -- The App configuration
+app:
+  # -- SPIRL SPIFFE CSI injeciton enabled
+  spiffeCSIDriverInjectionEnabled: true
+  # -- SPIFFE Workload API socket mount path
+  spiffeSocketMountPathDir: /spiffe-workload-api
+  # -- SPIFFE Workload API socket name exposed by the agent
+  # the resulting default socket path will be /spiffe-workload-api/agent.sock
+  # spiffeSocketName is a filename from the socket path for the agent
+  spiffeSocketName: spire-agent.sock
+  # -- Add SPIFFE CSIdirver volume
+  spiffeCSIDriverVolume: true
+  # -- Enable busybox container
+  enableBusybox: true
+
+# -- SPIFFE CSI driver support
+spiffeCSIDriver:
+  # -- Enable/disable SPIFFE CSI driver support
+  enabled: false

@@ -2,6 +2,12 @@
 
 > **Note:** Looking for the English version of this tutorial? [Click here](README_en.md)
 
+[SPIFFE](https://spiffe.io/) e [SPIRE](https://spiffe.io/) são projetos open-source mantidos pela [CNCF](https://www.cncf.io/) que oferecem uma maneira segura e padronizada
+de distribuição de identidades para workloads em ambientes heterogêneos e dinâmicos.
+
+- **SPIFFE** (Secure Production Identity Framework For Everyone) é uma especificação que define um conjunto de padrões para definir, distribuir e emitir identidades.
+- **SPIRE** (SPIFFE Runtime Environment) é uma implementação open-source de referência do SPIFFE que oferece suporte a várias plataformas e ambientes, incluindo Kubernetes, VMs e bare-metal.
+
 Este tutorial irá guiá-lo através do processo de deploy do SPIRE em um cluster Kubernetes (kind) e usá-lo para emitir e gerenciar identidades SPIFFE para workloads em execução no cluster.
 
 Este é um tutorial avançado para implantar o SPIRE em um ambiente Kubernetes, se você acabou de começar a aprender sobre
@@ -12,6 +18,19 @@ Não se esqueça de verificar estes outros repositórios com tutoriais e exemplo
 como **integração com service meshes**, **bancos de dados**, **OIDC**, **federation** e mais!
 - https://github.com/spiffe/spire-tutorials
 - https://github.com/spiffe/spire-examples
+
+> Caso esteja pensando em utilizar o **SPIFFE** em seus sistemas, não deixe de conferir também o incrível trabalho que estamos fazendo na [SPIRL](https://www.spirl.com/),
+uma implementação comercial do SPIFFE que oferece suporte e recursos enterprise adicionais para empresas que desejam adotar o SPIFFE em seus sistemas sem o overhead
+de manter e gerenciar a infraestrutura do SPIRE.
+
+## Objetivos de Aprendizado
+Após completar este tutorial, você terá:
+- Um Cluster Kubernetes rodando no kind.
+- Componentes do SPIRE implantados no cluster Kubernetes.
+- Duas cargas de trabalho (cliente e servidor) rodando e se comunicando entre si usando mTLS com SVIDs emitidos pelo SPIRE.
+- Um aplicativo de demonstração que expõe os dados da Workload API em uma interface de usuário web para que você possa explorar certificados x509, tokens JWT e Trust Bundles.
+Todos os passos estão contidos nos scripts deste repositório, apenas executando os scripts tudo deverá ser configurado para você. 
+Eu recomendo fortemente que você leia os scripts e entenda o que cada passo está fazendo, não há nenhuma mágica aqui :)
 
 ## Requisitos
 - [kind](https://kind.sigs.k8s.io/docs/user/quick-start/)
@@ -52,6 +71,8 @@ A ideia para o serviço greeter é demonstrar como reaver SVIDs da Workload API 
 Tanto o cliente quanto o servidor fazem uso da biblioteca [go-spiffe](https://github.com/spiffe/go-spiffe) para interagir com a Workload API e estabelecer uma conexão [mTLS](https://www.cloudflare.com/learning/access-management/what-is-mutual-tls/) entre eles.
 
 <img src="images/workloads.png" alt="drawing" width="1000"/>
+
+> **Nota:** Nota: O passo 5 descrito abaixo é um extra para deployar o spiffe-demo-app para que você possa visualizar todos os dados expostos pela Workload API em uma interface de usuário web.
 
 ### Como as workloads obtêm seus SVIDs
 Se você está usando o SPIRE sem o gerenciador de controle, você precisa passar pelo processo de [registro de identidade de workload](https://spiffe.io/docs/latest/deploying/registering/)
@@ -119,11 +140,40 @@ Este é o modelo que é usado em conjunto com [k8s workload attestor](https://gi
 ```
 Se você ver a saída acima, significa que tanto o cliente quanto o servidor foram atestados pelo SPIRE, receberam seus SVIDs e estão se comunicando entre si usando mTLS.
 
-5. Limpar.
+5. Extra: Explorando a Workload API com Web UI.
+Este script fará o deploy do spiffe-demo-app no namespace "spiffe-demo" e irá export um app web com port forwarding na localhost:8080. 
+O spiffe-demo-app é uma interface de usuário web que permite visualizar os dados expostos pela Workload API, incluindo SVIDs de certificado x509, SVIDs JWT e trust bundle.
+
+```bash
+./5-extra-spiffe-demo-app.sh
+```
+Agora vá para http://localhost:8080 em seu navegador para explorar a Workload API:
+<img src="images/spiffe-demo.png" alt="drawing" width="800"/>
+
+
+6. Limpando o ambiente.
    Este script limpará o cluster kind e o contêiner de registro.
 ```bash
-./5-clean-up.sh
+./6-clean-up.sh
 ```
 
+## Próximos Passos
+Parabéns! agora você tem um ambiente de trabalho com o SPIRE implantado em um cluster Kubernetes e workloads atestadas se comunicando entre si usando mTLS!
+
+O mundo do SPIFFE e SPIRE é extremamente vasto, e neste tutorial exploramos apenas alguns use-cases. Confira os links abaixo para mais recursos adicionais
+e os links no início deste tutorial para mais exemplos e tutoriais como **integração com service meshes**, **bancos de dados**, **OIDC**, **federation** e mais!
+
+Sinta-se à vontade para se [envolver com a comunidade](https://spiffe.io/docs/latest/spiffe-about/get-involved/). Caso
+tenha dúvidas ou queira compartilhar suas experiências, a comunidade está sempre disposta a ajudar, entre no [canal do Slack](https://slack.spiffe.io/) e participe das discussões.
+
 ## Referências e Recursos Adicionais
-Caso você deseja saber mais sobre o SPIFFE e SPIRE,
+Caso você deseja saber mais sobre o SPIFFE e SPIRE, aqui estão alguns links:
+- [SPIFFE](https://spiffe.io/): Site oficial do projeto SPIFFE.
+- [SPIRE](https://spiffe.io/docs/latest/spire-about/): Site oficial do projeto SPIRE.
+- [Awesome SPIFFE SPIRE](https://github.com/elinesterov/awesome-spiffe-spire): Repo com diversos links de vídeos e artigos sobre o assunto.
+- [Solving The Bottom Turtle Problem](https://spiffe.io/pdf/Solving-the-bottom-turtle-SPIFFE-SPIRE-Book.pdf): Livro sobre SPIFFE e SPIRE.
+- [Episódio que participei no Kubicast da Getup](https://www.youtube.com/watch?v=5zq7EPHDbWc): Falamos sobre SPIFFE, SPIRE: história e use cases.
+
+## Trabalho Futuro
+- Adicionar exemplo de Federaçao entre trust domains.
+- Adicionar exemplo com Nested SPIRE.
