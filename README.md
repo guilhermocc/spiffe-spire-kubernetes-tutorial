@@ -72,7 +72,7 @@ Tanto o cliente quanto o servidor fazem uso da biblioteca [go-spiffe](https://gi
 
 <img src="images/workloads.png" alt="drawing" width="1000"/>
 
-> **Nota:** Nota: O passo 5 descrito abaixo é um extra para deployar o spiffe-demo-app para que você possa visualizar todos os dados expostos pela Workload API em uma interface de usuário web.
+> **Nota:**: O passo 5 descrito abaixo é um extra para deployar o spiffe-demo-app para que você possa visualizar todos os dados expostos pela Workload API em uma interface de usuário web.
 
 ### Como as workloads obtêm seus SVIDs
 Se você está usando o SPIRE sem o gerenciador de controle, você precisa passar pelo processo de [registro de identidade de workload](https://spiffe.io/docs/latest/deploying/registering/)
