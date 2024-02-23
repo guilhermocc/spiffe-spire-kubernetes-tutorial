@@ -1,9 +1,7 @@
-cd greeter
-make docker-build
 make deploy
 
 kubectl config use-context kind-spire-example
 
-kubectl create namespace workload
-kubectl apply -f server-deploy.yaml
-kubectl apply -f client-deploy.yaml
+kubectl create namespace workload --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -f greeter/server-deploy.yaml
+kubectl apply -f greeter/client-deploy.yaml

@@ -36,15 +36,6 @@ nodes:
   - |
 EOF
 
-#    kind: ClusterConfiguration
-#    apiServer:
-#      extraArgs:
-#       service-account-issuer: api
-#service-account-signing-key-file: /etc/kubernetes/pki/apiserver.key
-#       service-account-api-audiences: api
-# connect the registry to the cluster network
-# docker network connect "kind" "${reg_name}"
-# TODO check why this does not work -- it is not needed for now
 
 # tell https://tilt.dev to use the registry
 # https://docs.tilt.dev/choosing_clusters.html#discovering-the-registry

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: greeter-server
+  name: greeter-server-sa
   namespace: workload
 
 ---
@@ -24,7 +24,7 @@ spec:
         app: greeter-server
         spire.spiffe.io/spiffeid: greeter-server
     spec:
-      serviceAccountName: greeter-server
+      serviceAccountName: greeter-server-sa
       containers:
         - name: greeter-server
           image: greeter-server:demo

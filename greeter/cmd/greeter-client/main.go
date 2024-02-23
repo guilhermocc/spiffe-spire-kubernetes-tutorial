@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/pem"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -27,8 +25,8 @@ func main() {
 	var authorizedSpiffeIDs string
 	flag.StringVar(&authorizedSpiffeIDs, "authorized-spiffe-ids", "", "authorized spiffe IDs separated by comma")
 	flag.Parse()
-	// spiffe IDs separated by comma
 
+	// spiffe IDs separated by comma
 	if authorizedSpiffeIDs == "" {
 		authorizedSpiffeIDs = os.Getenv("AUTHORIZED_SPIFFE_IDS")
 	}
@@ -68,22 +66,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	bundle, err := source.GetX509BundleForTrustDomain(svid.ID.TrustDomain())
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	log.Printf("SVID: %q", svid.ID)
-	log.Printf("Bundles:")
-	for _, bundleCert := range bundle.X509Authorities() {
-		// 	print in pem format
-		pemObject := pem.EncodeToMemory(&pem.Block{
-			Type:  "CERTIFICATE",
-			Bytes: bundleCert.Raw,
-		})
-
-		fmt.Printf("Bundle cert: %s", pemObject)
-	}
+	log.Printf("SPIFFE ID: %q", svid.ID)
 
 	creds := grpccredentials.MTLSClientCredentials(source, source, tlsconfig.AuthorizeOneOf(authorizedSpiffeIDsSlice...))
 
@@ -95,7 +79,7 @@ func main() {
 
 	greeterClient := helloworld.NewGreeterClient(client)
 
-	const interval = time.Second * 10
+	const interval = 30 * time.Second
 	log.Printf("Issuing requests every %s...", interval)
 	for {
 		issueRequest(ctx, greeterClient)

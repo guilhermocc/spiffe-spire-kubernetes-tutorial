@@ -1,9 +1,9 @@
-FROM golang:1.19-alpine AS builder
+FROM golang:1.21-alpine AS builder
 WORKDIR /workspace
 COPY go.mod go.mod
 COPY go.sum go.sum
-RUN go mod download
 COPY cmd/ cmd/
+RUN go mod tidy
 RUN CGO_ENABLED=0 go build ./cmd/greeter-client
 RUN CGO_ENABLED=0 go build ./cmd/greeter-server
 

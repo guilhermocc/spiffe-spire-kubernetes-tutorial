@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: greeter-client
+  name: greeter-client-sa
   namespace: workload
 ---
 
@@ -36,7 +36,7 @@ spec:
         app: greeter-client
         spire.spiffe.io/spiffeid: greeter-client
     spec:
-      serviceAccountName: greeter-client
+      serviceAccountName: greeter-client-sa
       containers:
         - name: greeter-client
           image: greeter-client:demo
@@ -51,7 +51,7 @@ spec:
             - name: GREETER_SERVER_ADDR
               value: greeter-server.workload.svc.cluster.local:8443
             - name: AUTHORIZED_SPIFFE_IDS
-              value: spiffe://example.org/ns/workload/sa/greeter-server
+              value: spiffe://example.org/ns/workload/sa/greeter-server-sa
       volumes:
         - name: spiffe-workload-api
           csi:
