@@ -47,9 +47,3 @@ kubectl config use-context kind-spire-example
 helm repo add kubeshark https://helm.kubeshark.co
 helm install kubeshark kubeshark/kubeshark
 
-while [ $(kubectl -n spiffe-demo get deployment spiffe-demo-app -o 'jsonpath={..status.conditions[?(@.type=="Available")].status}') != "True" ]; do
-  echo "waiting for deployment"
-  sleep 1
-done
-kubectl port-forward service/kubeshark-front 8899:80 &
-

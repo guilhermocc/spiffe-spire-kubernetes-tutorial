@@ -92,7 +92,7 @@ Este é o modelo que é usado em conjunto com [k8s workload attestor](https://gi
 `spiffe://{{ .TrustDomain }}/ns/{{ .PodMeta.Namespace }}/sa/{{ .PodSpec.ServiceAccountName }}`
 
 
-### Passos de Implantação
+### Passos de Deploy
 
 0. Verificando requisitos.
    Este script verificará todas as ferramentas e dependências necessárias para executar o tutorial.
@@ -104,60 +104,116 @@ Este é o modelo que é usado em conjunto com [k8s workload attestor](https://gi
    O segundo script criará um contêiner de registro para armazenar as imagens do serviço greeter.
    Ele também cria um cluster kind com dois nós.
 ```bash
-./1-create-kind-cluster.sh
+./1-create-cluster.sh
 ```
 
-2. Deploy do SPIRE.
-   Este script implantará os componentes spire no cluster kind usando o gráfico de helm spire.
+2. Deploy do dos workloads de demonstração sem SPIFFE.
+   Este script irá buildar e fazer o deploy do servidor greeter e o cliente no namespace "workload", por enquanto sem SPIFFE.
 ```bash
-./2-deploy-spire.sh
+./2-install-demo-app.sh
 ```
 
-3. Deploy dos workloads de demonstração.
-   Este script irá buildar e fazer o deploy do servidor greeter e o cliente no namespace "workload".
+3. Verificar comunicação entre workloads.
+   Este script verificará que o cliente greeter pode se comunicar com o servidor greeter.
 ```bash
-./3-deploy-demo-workloads.sh
+./3-verify-demo-workloads.sh
+```
+Se tudo estiver funcionando corretamente, você deverá ver a seguinte saída:
+```bash
+---- Client logs ----
+2025/01/29 15:50:50 Starting up...
+2025/01/29 15:50:50 SPIFFE config disabled
+2025/01/29 15:50:50 Server Address: greeter-server.workload.svc.cluster.local:8443
+2025/01/29 15:50:50 Making SayHello requests every 1s...
+2025/01/29 15:50:52 SOME-SERVER-ID said "Hello, SOME-CLIENT-ID!"
+2025/01/29 15:50:53 SOME-SERVER-ID said "Hello, SOME-CLIENT-ID!"
+2025/01/29 15:50:54 SOME-SERVER-ID said "Hello, SOME-CLIENT-ID!"
+2025/01/29 15:50:55 SOME-SERVER-ID said "Hello, SOME-CLIENT-ID!"
+
+---- Server logs ----
+2025/01/29 15:50:50 Starting up...
+2025/01/29 15:50:50 SPIFFE config disabled
+2025/01/29 15:50:50 Serving on [::]:8443
+2025/01/29 15:50:52 SOME-CLIENT-ID said hello "Server"
+2025/01/29 15:50:53 SOME-CLIENT-ID said hello "Server"
+2025/01/29 15:50:54 SOME-CLIENT-ID said hello "Server"
+2025/01/29 15:50:55 SOME-CLIENT-ID said hello "Server"
 ```
 
-4. Verificar que tudo está funcionando.
+Agora você pode também acessart o KubeShark para analisar o tráfego entre os workloads:
+```bash
+kubectl port-forward service/kubeshark-front 8899:80
+```
+
+Acesse http://localhost:8899 e veja que o tráfego entre os workloads está sem criptografia, no
+qual é possivel ver o conteúdo da mensagem enviada.
+
+4. Deploy do SPIRE.
+   Este script irá fazer o deploy os componentes spire no cluster kind usando o helm chart spire.
+```bash
+./4-install-spire.sh
+```
+
+5. Atualizar workloads para utilizar identidades SPIFFE.
+   Este script irá atualizar os workloads greeter para consumir identidades SPIFFE emitidas pelo SPIRE e se comunicar entre si usando mTLS.
+```bash
+./5-update-workloads-to-be-spiffe-aware.sh
+```
+
+6. Verificar que tudo está funcionando.
    Este script verificará que o cliente greeter pode se comunicar com o servidor greeter usando os SVIDs emitidos pelo SPIRE.
    Você poderá esperar alguns segundos para que os workloads sejam atestados e obtenham seus SVIDs.
 ```bash
-./4-verify-demo-workloads.sh
+./6-verify-demo-workloads.sh
 ```
  Se tudo estiver funcionando corretamente, você deverá ver a seguinte saída:
 ```bash
 ---- Client logs ----
-2024/02/23 03:03:31 Starting up...
-2024/02/23 03:03:31 Server Address: greeter-server.workload.svc.cluster.local:8443
-2024/02/23 03:03:31 Connecting to Workload API at "unix:///spiffe-workload-api/spire-agent.sock"...
-2024/02/23 03:03:37 Connected to Workload API at "unix:///spiffe-workload-api/spire-agent.sock"
-2024/02/23 03:03:37 SPIFFE ID: "spiffe://example.org/ns/workload/sa/greeter-client-sa"
-2024/02/23 03:03:37 Issuing requests every 30s...
-2024/02/23 03:03:37 spiffe://example.org/ns/workload/sa/greeter-server-sa said "On behalf of spiffe://example.org/ns/workload/sa/greeter-client-sa, hello Joe!"
+2025/01/29 15:54:59 Starting up...                                                                                                                      
+2025/01/29 15:54:59 SPIFFE config enabled, setting up mTLS                                                                                              
+2025/01/29 15:54:59 Connecting to Workload API at "unix:///spiffe-workload-api/spire-agent.sock"...                                                     
+2025/01/29 15:55:14 Connected to Workload API at "unix:///spiffe-workload-api/spire-agent.sock"                                                         
+2025/01/29 15:55:14 SPIFFE ID: "spiffe://cloudnative.br.sp/ns/workload/sa/greeter-client-sa"                                                            
+2025/01/29 15:55:14 Server Address: greeter-server.workload.svc.cluster.local:8443                                                                      
+2025/01/29 15:55:14 Making SayHello requests every 1s...  
+2025/01/29 15:55:21 spiffe://cloudnative.br.sp/ns/workload/sa/greeter-server-sa said "Hello, spiffe://cloudnative.br.sp/ns/workload/sa/greeter-client-sa!"
+2025/01/29 15:55:22 spiffe://cloudnative.br.sp/ns/workload/sa/greeter-server-sa said "Hello, spiffe://cloudnative.br.sp/ns/workload/sa/greeter-client-sa!"
+2025/01/29 15:55:23 spiffe://cloudnative.br.sp/ns/workload/sa/greeter-server-sa said "Hello, spiffe://cloudnative.br.sp/ns/workload/sa/greeter-client-sa!"
+2025/01/29 15:55:24 spiffe://cloudnative.br.sp/ns/workload/sa/greeter-server-sa said "Hello, spiffe://cloudnative.br.sp/ns/workload/sa/greeter-client-sa!"
 
 ---- Server logs ----
-2024/02/23 03:02:32 Starting up...
-2024/02/23 03:02:32 Connecting to Workload API at "unix:///spiffe-workload-api/spire-agent.sock"...
-2024/02/23 03:02:36 Connected to Workload API at "unix:///spiffe-workload-api/spire-agent.sock"
-2024/02/23 03:02:36 SPIFFE ID: "spiffe://example.org/ns/workload/sa/greeter-server-sa"
-2024/02/23 03:02:36 Serving on [::]:8443
-2024/02/23 03:03:37 spiffe://example.org/ns/workload/sa/greeter-client-sa has requested that I say say hello to "Joe"...
+2025/01/29 15:54:59 Starting up...
+2025/01/29 15:54:59 SPIFFE config enabled, setting up mTLS
+2025/01/29 15:54:59 Connecting to Workload API at "unix:///spiffe-workload-api/spire-agent.sock"...
+2025/01/29 15:55:20 Connected to Workload API at "unix:///spiffe-workload-api/spire-agent.sock"
+2025/01/29 15:55:20 SPIFFE ID: "spiffe://cloudnative.br.sp/ns/workload/sa/greeter-server-sa"
+2025/01/29 15:55:20 Serving on [::]:8443
+2025/01/29 15:55:21 spiffe://cloudnative.br.sp/ns/workload/sa/greeter-client-sa said hello "Server"
+2025/01/29 15:55:22 spiffe://cloudnative.br.sp/ns/workload/sa/greeter-client-sa said hello "Server"
+2025/01/29 15:55:23 spiffe://cloudnative.br.sp/ns/workload/sa/greeter-client-sa said hello "Server"
+2025/01/29 15:55:24 spiffe://cloudnative.br.sp/ns/workload/sa/greeter-client-sa said hello "Server"
 ```
 Se você ver a saída acima, significa que tanto o cliente quanto o servidor foram atestados pelo SPIRE, receberam seus SVIDs e estão se comunicando entre si usando mTLS.
 
-5. Extra: Explorando a Workload API com Web UI.
+Você pode novamente acessar o KubeShark para analisar o tráfego entre os workloads:
+```bash
+kubectl port-forward service/kubeshark-front 8899:80
+```
+Acesse http://localhost:8899 e veja que o tráfego entre os workloads está criptografado
+
+> Para visualizar os pacotes, agora você precisará habilirtar o TCP e TLSX Protocl Dissectors no KubeShark.
+
+7. Extra: Explorando a Workload API com Web UI.
 Este script fará o deploy do spiffe-demo-app no namespace "spiffe-demo" e irá export um app web com port forwarding na localhost:8080. 
 O spiffe-demo-app é uma interface de usuário web que permite visualizar os dados expostos pela Workload API, incluindo SVIDs de certificado x509, SVIDs JWT e trust bundle.
 
 ```bash
-./5-extra-spiffe-demo-app.sh
+./7-extra-spiffe-demo-app.sh
 ```
 Agora vá para http://localhost:8080 em seu navegador para explorar a Workload API:
 <img src="images/spiffe-demo.png" alt="drawing" width="800"/>
 
-
-6. Limpando o ambiente.
+8. Limpando o ambiente.
    Este script limpará o cluster kind e o contêiner de registro.
 ```bash
 ./6-clean-up.sh

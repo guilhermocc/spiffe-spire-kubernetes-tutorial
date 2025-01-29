@@ -39,7 +39,7 @@ kubectl patch deployment greeter-client -n workload --type='json' -p='[
     "path": "/spec/template/spec/containers/0/env/-",
     "value": {
       "name": "AUTHORIZED_SPIFFE_IDS",
-      "value": "spiffe://example.org/ns/workload/sa/greeter-server-sa"
+      "value": "spiffe://cloudnative.br.sp/ns/workload/sa/greeter-server-sa"
     }
   }
 ]'
