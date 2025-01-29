@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -10,45 +9,44 @@ import (
 
 	"github.com/spiffe/go-spiffe/v2/spiffegrpc/grpccredentials"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
-	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/examples/helloworld/helloworld"
+
+	"greeter/cmd"
 )
 
 func main() {
-	var addr string
-	flag.StringVar(&addr, "addr", "localhost:8080", "host:port of the server")
-	flag.Parse()
-
 	log.Println("Starting up...")
+	ctx := context.Background()
 
-	listener, err := net.Listen("tcp", addr)
+	listenAddr := os.Getenv("LISTEN_ADDR")
+	wlAPIAddr := os.Getenv("SPIFFE_ENDPOINT_SOCKET")
+
+	var serverOpts []grpc.ServerOption
+
+	if wlAPIAddr != "" {
+		log.Println("SPIFFE config enabled, setting up mTLS")
+
+		x509Source := cmd.ConnectToWorkloadAPI(ctx, wlAPIAddr)
+		defer x509Source.Close()
+		serverOpts = append(serverOpts,
+			grpc.Creds(grpccredentials.MTLSServerCredentials(
+				x509Source, // SVID source
+				x509Source, // Bundle source
+				tlsconfig.AuthorizeAny())),
+		)
+	} else {
+		log.Println("SPIFFE config disabled")
+		serverOpts = append(serverOpts, grpc.Creds(insecure.NewCredentials()))
+	}
+
+	listener, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	wlAPIAddrenv := os.Getenv("SPIFFE_ENDPOINT_SOCKET")
-	log.Printf("Connecting to Workload API at %q...", wlAPIAddrenv)
-
-	// SPIFFE_ENDPOINT_SOCKET environment variable will be used.
-	source, err := workloadapi.NewX509Source(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer source.Close()
-
-	log.Printf("Connected to Workload API at %q", wlAPIAddrenv)
-
-	svid, err := source.GetX509SVID()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("SPIFFE ID: %q", svid.ID)
-
-	creds := grpccredentials.MTLSServerCredentials(source, source, tlsconfig.AuthorizeAny())
-
-	server := grpc.NewServer(grpc.Creds(creds))
+	server := grpc.NewServer(serverOpts...)
 	helloworld.RegisterGreeterServer(server, greeter{})
 
 	log.Println("Serving on", listener.Addr())
@@ -62,13 +60,14 @@ type greeter struct {
 }
 
 func (greeter) SayHello(ctx context.Context, req *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
-	clientID := "SOME-CLIENT"
+	clientID := "SOME-CLIENT-ID"
 	if peerID, ok := grpccredentials.PeerIDFromContext(ctx); ok {
 		clientID = peerID.String()
 	}
 
-	log.Printf("%s has requested that I say say hello to %q...", clientID, req.Name)
+	log.Printf("%s said hello %q", clientID, req.Name)
+
 	return &helloworld.HelloReply{
-		Message: fmt.Sprintf("On behalf of %s, hello %s!", clientID, req.Name),
+		Message: fmt.Sprintf("Hello, %s!", clientID),
 	}, nil
 }

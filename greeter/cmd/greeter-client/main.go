@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"log"
 	"os"
 	"strings"
@@ -11,67 +10,50 @@ import (
 	"github.com/spiffe/go-spiffe/v2/spiffegrpc/grpccredentials"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
-	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/examples/helloworld/helloworld"
 	"google.golang.org/grpc/peer"
+
+	"greeter/cmd"
 )
 
 func main() {
-	var addr string
-	flag.StringVar(&addr, "addr", "", "host:port of the server")
-	flag.Parse()
-
-	var authorizedSpiffeIDs string
-	flag.StringVar(&authorizedSpiffeIDs, "authorized-spiffe-ids", "", "authorized spiffe IDs separated by comma")
-	flag.Parse()
-
-	// spiffe IDs separated by comma
-	if authorizedSpiffeIDs == "" {
-		authorizedSpiffeIDs = os.Getenv("AUTHORIZED_SPIFFE_IDS")
-	}
-
-	var authorizedSpiffeIDsSlice []spiffeid.ID
-	for _, sid := range strings.Split(authorizedSpiffeIDs, ",") {
-		authSpiffeID, err := spiffeid.FromString(sid)
-		if err != nil {
-			log.Fatal("Invalid SPIFFE ID %q: %v", sid, err)
-		}
-		authorizedSpiffeIDsSlice = append(authorizedSpiffeIDsSlice, authSpiffeID)
-	}
-
-	if addr == "" {
-		addr = os.Getenv("GREETER_SERVER_ADDR")
-	}
-	if addr == "" {
-		addr = "localhost:8080"
-	}
 	log.Println("Starting up...")
-	log.Println("Server Address:", addr)
-
 	ctx := context.Background()
 
-	wlAPIAddrenv := os.Getenv("SPIFFE_ENDPOINT_SOCKET")
-	log.Printf("Connecting to Workload API at %q...", wlAPIAddrenv)
+	addr := os.Getenv("GREETER_SERVER_ADDR")
+	authorizedSpiffeIDs := os.Getenv("AUTHORIZED_SPIFFE_IDS")
+	wlAPIAddr := os.Getenv("SPIFFE_ENDPOINT_SOCKET")
 
-	source, err := workloadapi.NewX509Source(context.Background())
-	if err != nil {
-		log.Fatal(err)
+	var dialOpts []grpc.DialOption
+
+	if wlAPIAddr != "" {
+		log.Println("SPIFFE config enabled, setting up mTLS")
+
+		var authorizedSpiffeIDsSlice []spiffeid.ID
+		for _, sid := range strings.Split(authorizedSpiffeIDs, ",") {
+			authSpiffeID, err := spiffeid.FromString(sid)
+			if err != nil {
+				log.Fatal("Invalid SPIFFE ID %q: %v", sid, err)
+			}
+			authorizedSpiffeIDsSlice = append(authorizedSpiffeIDsSlice, authSpiffeID)
+		}
+
+		x509Source := cmd.ConnectToWorkloadAPI(ctx, wlAPIAddr)
+		defer x509Source.Close()
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(
+			grpccredentials.MTLSClientCredentials(
+				x509Source, // SVID source
+				x509Source, // Bundle source
+				tlsconfig.AuthorizeOneOf(authorizedSpiffeIDsSlice...))))
+	} else {
+		log.Println("SPIFFE config disabled")
+		dialOpts = append(dialOpts, grpc.WithInsecure())
 	}
-	defer source.Close()
 
-	log.Printf("Connected to Workload API at %q", wlAPIAddrenv)
+	log.Println("Server Address:", addr)
 
-	svid, err := source.GetX509SVID()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("SPIFFE ID: %q", svid.ID)
-
-	creds := grpccredentials.MTLSClientCredentials(source, source, tlsconfig.AuthorizeOneOf(authorizedSpiffeIDsSlice...))
-
-	client, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(creds))
+	client, err := grpc.DialContext(ctx, addr, dialOpts...)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -79,8 +61,8 @@ func main() {
 
 	greeterClient := helloworld.NewGreeterClient(client)
 
-	const interval = 30 * time.Second
-	log.Printf("Issuing requests every %s...", interval)
+	const interval = 1 * time.Second
+	log.Printf("Making SayHello requests every %s...", interval)
 	for {
 		issueRequest(ctx, greeterClient)
 		time.Sleep(interval)
@@ -90,17 +72,14 @@ func main() {
 func issueRequest(ctx context.Context, c helloworld.GreeterClient) {
 	p := new(peer.Peer)
 	resp, err := c.SayHello(ctx, &helloworld.HelloRequest{
-		Name: "Joe",
+		Name: "Server",
 	}, grpc.Peer(p))
 	if err != nil {
 		log.Printf("Failed to say hello: %v", err)
 		return
 	}
 
-	// ///////////////////////////////////////////////////////////////////////
-	// TODO: Obtain the server SPIFFE ID
-	// ///////////////////////////////////////////////////////////////////////
-	serverID := "SOME-SERVER"
+	serverID := "SOME-SERVER-ID"
 	if peerID, ok := grpccredentials.PeerIDFromPeer(p); ok {
 		serverID = peerID.String()
 	}

@@ -6,11 +6,13 @@ COPY cmd/ cmd/
 RUN go mod tidy
 RUN CGO_ENABLED=0 go build ./cmd/greeter-client
 RUN CGO_ENABLED=0 go build ./cmd/greeter-server
+RUN apk add tcpdump
 
 #FROM gcr.io/distroless/static:nonroot AS greeter-client
 FROM alpine AS greeter-client
 WORKDIR /
 COPY --from=builder /workspace/greeter-client .
+RUN apk --update add
 USER 65532:65532
 ENTRYPOINT ["/greeter-client"]
 
@@ -18,5 +20,6 @@ ENTRYPOINT ["/greeter-client"]
 FROM alpine AS greeter-server
 WORKDIR /
 COPY --from=builder /workspace/greeter-server .
+RUN apk --update add
 USER 65532:65532
 ENTRYPOINT ["/greeter-server"]

@@ -37,8 +37,19 @@ nodes:
 EOF
 
 
-# tell https://tilt.dev to use the registry
-# https://docs.tilt.dev/choosing_clusters.html#discovering-the-registry
+
 for node in $(kind get nodes); do
   kubectl annotate node "${node}" "kind.x-k8s.io/registry=localhost:${reg_port}";
 done
+
+# Install KubeShark for packet capture and analysis
+kubectl config use-context kind-spire-example
+helm repo add kubeshark https://helm.kubeshark.co
+helm install kubeshark kubeshark/kubeshark
+
+while [ $(kubectl -n spiffe-demo get deployment spiffe-demo-app -o 'jsonpath={..status.conditions[?(@.type=="Available")].status}') != "True" ]; do
+  echo "waiting for deployment"
+  sleep 1
+done
+kubectl port-forward service/kubeshark-front 8899:80 &
+
